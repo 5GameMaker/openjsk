@@ -1,0 +1,1 @@
+{"version":3,"file":"DefaultPrefixManager.d.ts","sourceRoot":"","sources":["../../src/plugins/DefaultPrefixManager.ts"],"names":[],"mappings":"AAAA,OAAO,EAAE,OAAO,EAAE,MAAM,YAAY,CAAC;AAErC,OAAO,EAAE,aAAa,EAAc,MAAM,KAAK,CAAC;AAIhD,qBAAa,oBAAqB,SAAQ,aAAa;IACtC,MAAM;IAuBN,SAAS,CAAC,OAAO,EAAE,OAAO,GAAG,OAAO,CAAC,MAAM,CAAC;CAiB5D"}
