@@ -10,15 +10,15 @@
   "license": "ISC",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/TalkCord/openjsk.git"
+    "url": "git+https://github.com/5GameMaker/openjsk.git"
   },
   "keywords": [
     "buj"
   ],
   "bugs": {
-    "url": "https://github.com/TalkCord/openjsk/issues"
+    "url": "https://github.com/5GameMaker/openjsk/issues"
   },
-  "homepage": "https://github.com/TalkCord/openjsk#readme",
+  "homepage": "https://github.com/5GameMaker/openjsk#readme",
   "dependencies": {
     "@types/node": "^14.14.19",
     "discord.js": "^12.5.1",
