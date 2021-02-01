@@ -22,6 +22,9 @@ class Bot extends discord_js_1.Client {
     getPluginsOfType(type) {
         return this.plugins.filter(a => a instanceof type);
     }
+    getBehavoursOfType(type) {
+        return this.plugins.map(a => a.behavours).flat().filter(a => a instanceof type);
+    }
     loadPlugin(plugin) {
         try {
             plugin.onLoad();

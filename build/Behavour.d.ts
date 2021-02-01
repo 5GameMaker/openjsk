@@ -1,6 +1,5 @@
-import { Plugin } from ".";
 export declare class Behavour {
-    constructor(plugin: Plugin);
-    plugin: Plugin;
+    static invoke(fn: Function): void;
+    static load(): void;
 }
 //# sourceMappingURL=Behavour.d.ts.map

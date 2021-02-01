@@ -11,7 +11,7 @@ class Plugin {
     onLoad() { }
     onUnload() { }
     addBehavour(behavour) {
-        this.behavours.push(behavour instanceof _1.Behavour ? behavour : new behavour(this));
+        this.behavours.push(behavour instanceof _1.Behavour ? behavour : new behavour());
     }
 }
 exports.Plugin = Plugin;

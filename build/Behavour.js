@@ -2,9 +2,8 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.Behavour = void 0;
 class Behavour {
-    constructor(plugin) {
-        this.plugin = plugin;
-    }
+    static invoke(fn) { }
+    static load() { }
 }
 exports.Behavour = Behavour;
 //# sourceMappingURL=Behavour.js.map

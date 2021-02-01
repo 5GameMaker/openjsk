@@ -1,1 +1,1 @@
-{"version":3,"file":"Behavour.d.ts","sourceRoot":"","sources":["../src/Behavour.ts"],"names":[],"mappings":"AAAA,OAAO,EAAE,MAAM,EAAE,MAAM,GAAG,CAAC;AAE3B,qBAAa,QAAQ;gBACE,MAAM,EAAG,MAAM;IAI3B,MAAM,EAAG,MAAM,CAAC;CAC1B"}
+{"version":3,"file":"Behavour.d.ts","sourceRoot":"","sources":["../src/Behavour.ts"],"names":[],"mappings":"AAAA,qBAAa,QAAQ;WACH,MAAM,CAAC,EAAE,EAAG,QAAQ;WACpB,IAAI;CACrB"}
