@@ -15,6 +15,6 @@ export abstract class Plugin {
     public behavours : Behavour[];
 
     protected addBehavour(behavour : typeof Behavour | Behavour) {
-        this.behavours.push(behavour instanceof Behavour ? behavour : new behavour(this));
+        this.behavours.push(behavour instanceof Behavour ? behavour : new behavour());
     }
 }

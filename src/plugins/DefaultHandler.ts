@@ -233,6 +233,9 @@ export class DefaultHandler extends CommandHandler {
                         message.channel.send(`Unknown subcommand`);
                     }
                     break;
+
+                case CommandTerminationReason[CommandTerminationReason.NO_COMMAND_USED]:
+                    break;
             
                 default:
                     message.channel.send(`Command execution failed: ${CommandTerminationReason[command]}`);
@@ -247,7 +250,7 @@ export class DefaultHandler extends CommandHandler {
         });
 
         try {
-            await command.executable(context, ...args.slice(1));
+            await command.executable(context, ...args);
         } catch (err) {
             console.error(err);
         }
