@@ -1,13 +1,14 @@
 import { Client, ClientOptions } from "discord.js";
 import { Plugin } from ".";
-import { Sequelize } from 'sequelize';
+import { Options, Sequelize } from 'sequelize';
 
 export interface BotOptions extends ClientOptions {
-    prefix? : string,
+    prefix: string,
+    database: Options,
 }
 
 export class Bot extends Client {
-    constructor(options : BotOptions) {
+    constructor(options : Partial<BotOptions> = {}) {
         super
         (
             {
@@ -23,6 +24,8 @@ export class Bot extends Client {
                 ]
             } as BotOptions && options
         );
+
+        if (options.database) this.db = new Sequelize(options.database);
     }
 
     private plugins = new Array<Plugin>();

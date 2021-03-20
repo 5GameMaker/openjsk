@@ -1,8 +1,8 @@
 import { ClientEvents } from "discord.js";
 import { Behavour, Bot } from "../..";
 
-export class EventBehavour extends Behavour {
-    constructor(bot : Bot, event : keyof ClientEvents, callback : (...args : any[]) => {}) {
+export class EventBehavour<E extends keyof ClientEvents> extends Behavour {
+    constructor(bot : Bot, event : E, callback : (...args : ClientEvents[E]) => {}) {
         super(bot);
         this.event = event;
         this.callback = callback;
@@ -16,6 +16,6 @@ export class EventBehavour extends Behavour {
         this.bot.off(this.event, this.callback);
     }
     
-    private event : keyof ClientEvents;
-    private callback : (...args : any[]) => {};
+    private event : E;
+    private callback : (...args : ClientEvents[E]) => {};
 }
