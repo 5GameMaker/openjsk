@@ -1,7 +1,8 @@
 
+export const version = "1.2.1";
+
 export * from './Bot';
 export * from './Command';
-// export * from './plugins/Params';
 export * from './Context';
 
 export * from './plugins';

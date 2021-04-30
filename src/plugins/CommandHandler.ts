@@ -1,5 +1,5 @@
 import { Message } from "discord.js";
-import { Plugin } from "..";
+import { Plugin } from ".";
 
 export abstract class CommandHandler extends Plugin {
     onLoad() {

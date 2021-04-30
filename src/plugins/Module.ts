@@ -1,5 +1,6 @@
 import { Collection } from "discord.js";
-import { Command, Plugin } from "../";
+import { Command } from "..";
+import { Plugin } from ".";
 
 export enum CommandTerminationReason {
     DM_NOT_SUPPORTED,

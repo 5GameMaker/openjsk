@@ -1,5 +1,6 @@
 import { ClientEvents } from "discord.js";
-import { Behavour, Bot } from "../..";
+import { Behavour } from '..';
+import { Bot } from "../..";
 
 export class EventBehavour<E extends keyof ClientEvents> extends Behavour {
     constructor(bot : Bot, event : E, callback : (...args : ClientEvents[E]) => {}) {

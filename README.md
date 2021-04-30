@@ -10,4 +10,4 @@ was separated to make development of both Ghostly and openjsk
 easier. Please note that currently most openjsk updates can
 have breaking changes
 
-(Docs)[docs/index.md] (still WIP)
+[Docs](https://github.com/5GameMaker/openjsk/wiki/OpenJSK-Docs) (still WIP)

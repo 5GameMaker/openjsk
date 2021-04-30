@@ -1,5 +1,5 @@
-
-import { Behavour, Bot, Context } from "../..";
+import { Behavour } from '..';
+import { Bot, Context } from "../..";
 
 const cache = new Array<Bot>();
 

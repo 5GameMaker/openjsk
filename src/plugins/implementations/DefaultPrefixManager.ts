@@ -1,13 +1,14 @@
-import { Message } from 'discord.js';
-import { BIGINT, STRING, Model } from 'sequelize';
-import { BotOptions, PrefixManager } from '../../';
-
-class Prefixes extends Model {};
+import { Guild, Message, TextChannel } from 'discord.js';
+import { BIGINT, Model, JSON as tJSON } from 'sequelize';
+import { PrefixManager } from '..';
+import { BotOptions } from '../..';
 
 export class DefaultPrefixManager extends PrefixManager {
+    private Prefixes = class extends Model {};
+
     public async onLoad() {
         if (this.parent.db) {
-            Prefixes.init(
+            this.Prefixes.init(
                 {
                     id: {
                         type: BIGINT,
@@ -15,34 +16,74 @@ export class DefaultPrefixManager extends PrefixManager {
                         primaryKey: true,
                     },
                     prefix: {
-                        type: STRING,
+                        type: tJSON,
                     }
                 },
                 {
                     sequelize: this.parent.db,
-                    tableName: 'prefix',
+                    modelName: 'prefix',
                 }
             );
 
-            await Prefixes.sync();
+            await this.Prefixes.sync();
         }
     }
 
-    public async getPrefix(message: Message): Promise<string> {
-        const userPrefix = await Prefixes.findOne({
+    private __cache = new Map<string, string>();
+
+    public async getPrefix(binding : string, user : string) : Promise<string> {
+        if (typeof this.__cache.get(`${binding}-${user}`) == 'string')
+            return this.__cache.get(`${binding}-${user}`) || '';
+
+        function getp(r : any) : any | null {
+            if (!r) return null;
+
+            return r.prefix || null;
+        }
+
+        const prefixObject = getp(await this.Prefixes.findOne({
             where: {
-                id: message.author.id,
+                id: user,
             }
-        });
-        const guildPrefix = await Prefixes.findOne({
+        })) || {};
+
+        const prefix = prefixObject[binding] || (this.parent.options as BotOptions).prefix || "!";
+
+        for (const binding in prefixObject) this.__cache.set(`${binding}-${user}`, prefixObject[binding]);
+
+        this.__cache.set(`${binding}-${user}`, prefix);
+
+        return prefix;
+    }
+
+    public async setPrefix(binding : string, user : string, prefix : string) : Promise<void> {
+        function getp(r : any) : any | null {
+            if (!r) return null;
+
+            return r.prefix || null;
+        }
+
+        const _prefix = getp(await this.Prefixes.findOne({
             where: {
-                id: (message.guild || {id: '0'}).id,
+                id: user,
+            }
+        }));
+
+        await this.Prefixes.update({
+            _prefix,
+        }, {
+            where: {
+                user,
             }
         });
 
-        if (userPrefix && (userPrefix as any).id) return (userPrefix as any).id as string;
-        if (guildPrefix && (guildPrefix as any).id) return (guildPrefix as any).id as string;
+        this.__cache.set(`${binding}-${user}`, prefix);
+    }
 
-        return (this.parent.options as BotOptions).prefix || "!";
+    public getPrefixInContext(message: Message): Promise<string> {
+        return this.getPrefix(
+            message.channel instanceof TextChannel ? `GUILD-${(message.guild as Guild).id}` : "USER",
+            message.author.id,
+        );
     }
 }

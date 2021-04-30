@@ -170,7 +170,7 @@ export class DefaultHandler extends CommandHandler {
         await message.author.fetch();
 
         const prefixManager = this.parent.getPluginsOfType<PrefixManager>(PrefixManager)[0];
-        const prefix = await prefixManager.getPrefix(message);
+        const prefix = await prefixManager.getPrefixInContext(message);
 
         if (!message.content.startsWith(prefix)) return;
 
