@@ -1,3 +1,4 @@
+
 # 1.2.1 (beta)
 Breaking release!
 
@@ -7,3 +8,4 @@ Breaking release!
 - Plugins were moved in `openjsk.plugins` (everything can be accessed via main module)
 - Finally an implementation for behavours
 - Decryptors and params (will replace args soon)
+- Changed API of `DefaultPrefixManager`

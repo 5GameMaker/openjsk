@@ -170,9 +170,9 @@ export class DefaultHandler extends CommandHandler {
         await message.author.fetch();
 
         const prefixManager = this.parent.getPluginsOfType<PrefixManager>(PrefixManager)[0];
-        const prefix = await prefixManager.getPrefixInContext(message);
+        const prefix = (await prefixManager.getPrefixInContext(message)).sort((a, b) => a.length - b.length).find(a => message.content.startsWith(a));
 
-        if (!message.content.startsWith(prefix)) return;
+        if (!prefix) return;
 
         const args = this.split(message.content.substr(prefix.length));
 

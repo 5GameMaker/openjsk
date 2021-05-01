@@ -3,7 +3,7 @@ import { Plugin } from ".";
 import { Options, Sequelize } from 'sequelize';
 
 export interface BotOptions extends ClientOptions {
-    prefix: string,
+    prefix: string | string[],
     database: Options,
 }
 
@@ -30,6 +30,8 @@ export class Bot extends Client {
 
     private plugins = new Array<Plugin>();
     public db : Sequelize | null = null;
+
+    declare public options : BotOptions;
 
     public getPluginsOfType<T extends Plugin>(type : typeof Plugin) : T[] {
         return this.plugins.filter(a => a instanceof type) as T[];
