@@ -1,13 +1,14 @@
 import { Client, ClientOptions } from "discord.js";
-import { Behavour, Plugin } from ".";
-import { Sequelize } from 'sequelize';
+import { Plugin } from ".";
+import { Options, Sequelize } from 'sequelize';
 
 export interface BotOptions extends ClientOptions {
-    prefix? : string,
+    prefix: string | string[],
+    database: Options,
 }
 
 export class Bot extends Client {
-    constructor(options : BotOptions) {
+    constructor(options : Partial<BotOptions> = {}) {
         super
         (
             {
@@ -23,17 +24,17 @@ export class Bot extends Client {
                 ]
             } as BotOptions && options
         );
+
+        if (options.database) this.db = new Sequelize(options.database);
     }
 
     private plugins = new Array<Plugin>();
     public db : Sequelize | null = null;
 
+    declare public options : BotOptions;
+
     public getPluginsOfType<T extends Plugin>(type : typeof Plugin) : T[] {
         return this.plugins.filter(a => a instanceof type) as T[];
-    }
-
-    public getBehavoursOfType<T extends Behavour>(type : typeof Behavour) : T[] {
-        return this.plugins.map(a => a.behavours).flat().filter(a => a instanceof type) as T[];
     }
 
     public loadPlugin(plugin : Plugin) {

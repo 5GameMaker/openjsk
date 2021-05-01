@@ -1,20 +1,10 @@
-export * from './Behavour';
+
+export const version = "1.2.1";
+
 export * from './Bot';
 export * from './Command';
-export * from './Params';
-export * from './Plugin';
 export * from './Context';
-export * from './Module';
-export * from './CommandHandler';
-export * from './PrefixManager';
 
-import * as defhandle from './plugins/DefaultHandler';
-import * as defpm from './plugins/DefaultPrefixManager';
-
-export const plugins = {
-    ...defhandle,
-    ...defpm,
-};
-
-export const behaviours = {
-};
+export * from './plugins';
+export * from './behavours';
+export * from './behavours';
