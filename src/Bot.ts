@@ -1,10 +1,12 @@
 import { Client, ClientOptions } from "discord.js";
 import { Plugin } from ".";
 import { Options, Sequelize } from 'sequelize';
+import { DefaultPrefixManager, DefaultHandler, Paginator, Main } from "./plugins/implementations";
 
 export interface BotOptions extends ClientOptions {
     prefix: string | string[],
     database: Options,
+    unconfigured: boolean,
 }
 
 export class Bot extends Client {
@@ -15,21 +17,30 @@ export class Bot extends Client {
                 prefix: "!",
                 restTimeOffset: 0,
                 restRequestTimeout: 0,
+                database: "sqlite::memory:",
                 partials: [
                     "CHANNEL",
                     "GUILD_MEMBER",
                     "MESSAGE",
                     "REACTION",
                     "USER",
-                ]
+                ],
+                unconfigured: false,
             } as BotOptions && options
         );
 
-        if (options.database) this.db = new Sequelize(options.database);
+        this.db = new Sequelize(options.database);
+
+        if (!this.options.unconfigured) {
+            this.loadPlugin(new DefaultPrefixManager(this));
+            this.loadPlugin(new DefaultHandler(this));
+            this.loadPlugin(new Paginator(this));
+            this.loadPlugin(new Main(this));
+        }
     }
 
     private plugins = new Array<Plugin>();
-    public db : Sequelize | null = null;
+    public readonly db : Sequelize; // no longer bot.db = new Sequelize
 
     declare public options : BotOptions;
 
