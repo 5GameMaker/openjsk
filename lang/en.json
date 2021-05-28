@@ -1,0 +1,29 @@
+{
+    "modules.main.help.nosearch.title": "Command list",
+    "modules.main.help.nosearch.description": "List of bot's commands. Maybe useful",
+    "modules.main.help.search.nothing": "We got nothing",
+    "modules.main.help.cmdinfo.category": "Category",
+    "modules.main.help.cmdinfo.aliases": "Aliases",
+    "modules.main.help.cmdinfo.subcommands": "Subcommands",
+    "modules.main.help.cmdinfo.usage": "Usage",
+
+    "meta.commands.commands.description": "Get list of commands",
+    "meta.commands.ping.description": "Check bot's ping",
+    "meta.commands.info.description": "Get information about this bot",
+    "meta.commands.prefix.description": "Get or set your/current guild's prefix",
+    "meta.commands.language.description": "Bot's language settings",
+    "meta.commands.jishaku.description": "(Bot owner only) Manage this bot",
+
+    "modules.main.info.owner": "Owner",
+    "modules.main.info.noowner": "No owner",
+    "modules.main.info.info": "Information",
+    "modules.main.info.info.host": "Host",
+    "modules.main.info.additional.private.title": "Private bot",
+    "modules.main.info.additional.private.description": "This bot is private and can only be added by its developer",
+    "modules.main.info.additional.oauthgrant.title": "Bot requires code grant",
+    "modules.main.info.additional.oauthgrant.description": "While adding this bot to your server you will be redirected to an external website provided by bot developer",
+    "modules.main.info.additional.public.title": "Add bot to your server",
+    "modules.main.info.additional.public.oauthgrant": "Ask bot developer for a link",
+    "modules.main.info.additional.limited.title": "Unverified",
+    "modules.main.info.additional.limited.description": "Since this bot is not verified and reached 100 servers it cannot be added to any server"
+}

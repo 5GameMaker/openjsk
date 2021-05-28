@@ -1,5 +1,5 @@
 import { ClientUser, EmbedFieldData, MessageEmbed, NewsChannel, Team, User, version as dsversion } from "discord.js";
-import { Bot, BotOptions, Command, CommandPermissionsLevel, version as ojversion} from "../..";
+import { Bot, BotOptions, Command, CommandPermissionsLevel, version as ojversion, Decryptor, UINT, STRING } from "../..";
 import { Module, PrefixManager } from "..";
 import { Paginator } from '.';
 import { platform, release } from "os";
@@ -17,60 +17,169 @@ export class Main extends Module { // this module probably will be added to the 
             permissions: {
                 level: CommandPermissionsLevel.DM,
             },
-            executable: async (ctx, nameOfSmthOrPage : string | undefined, page : string | undefined) => {
-                if (ctx.message.channel instanceof NewsChannel) return;
+            executable: [
+                {
+                    params: [
+                        {
+                            type: UINT,
+                            name: "page",
+                            required: false,
+                        }
+                    ],
+                    executable: async (ctx, page? : number) => {
+                        if (!page || isNaN(page)) page = 0;
+                        else page--;
 
-                const mods = bot.getPluginsOfType<Module>(Module);
-                let commands = mods.map(a => a.commands).flat();
+                        const commands = ctx.bot.getPluginsOfType(Module).map(a => a.commands).flat();
+                        const paginator = ctx.bot.getPluginsOfType(Paginator)[0];
+                        const languager = await ctx.languager;
 
-                let actualPage = (
-                    a => isNaN(a) ? 1 : a
-                )(
-                    parseInt(nameOfSmthOrPage && !isNaN(parseInt(nameOfSmthOrPage)) ? nameOfSmthOrPage : page || '1')
-                ) - 1;
+                        const lp = Math.floor(commands.length / 10);
 
-                if (nameOfSmthOrPage && isNaN(parseInt(nameOfSmthOrPage))) {
-                    commands = commands.filter(
-                        a =>
-                        a.category == nameOfSmthOrPage ||
-                        a.name.includes(nameOfSmthOrPage) ||
-                        a.aliases.filter(b => b.includes(nameOfSmthOrPage)).length > 0
-                    );
-                }
+                        if (page < 0) page = lp - page;
+                        if (page > lp) page = page % lp;
 
-                const pages = Math.ceil(commands.length / 5);
-
-                if (pages == 0) {
-                    ctx.message.channel.send("Found 0 commands from search query");
-                    return;
-                }
-
-                bot.getPluginsOfType<Paginator>(Paginator)[0].paginate(
-                    ctx.message.channel,
-                    new Array(pages).fill(1).map((_, i) => new MessageEmbed({
-                        title: "Commands list",
-                        description: "List of commands. Maybe useful",
-                        fields: commands
-                            .slice(i * 5, i * 5 + 5)
+                        const pages = new Array(lp).fill(1).map((_, i) => commands.slice(i * 10, i * 10 + 10))
                             .map(a => {
-                                const value = new Array<string>();
-    
-                                value.push(`> No description`.replace(/\n/g, "\n> "));
-                                value.push(``);
-                                if (a.aliases.length > 0) value.push(`**Aliases**: ${a.aliases.join(', ')}`);
-                                if (a.category) value.push(`**Category**: ${a.category}`);
-    
-                                return {
-                                    name: a.name,
-                                    value: value.join('\n'),
-                                    inline: true,
-                                }
-                            }),
-                    })),
-                    ctx.message.author,
-                    actualPage,
-                );
-            }
+                                return new MessageEmbed({
+                                    title: languager.string("modules.main.help.nosearch.title", {
+                                        page: `${page}`,
+                                        lp: `${lp}`,
+                                    }),
+                                    description: languager.string("modules.main.help.nosearch.description", {
+                                        page: `${page}`,
+                                        lp: `${lp}`,
+                                    }),
+                                    fields: a.map(a => {
+                                        return {
+                                            name: a.name,
+                                            value: languager.string(`meta.commands.${a.name}.description`),
+                                            inline: true,
+                                        }
+                                    }),
+                                });
+                            });
+
+                        if (ctx.channel instanceof NewsChannel) return;
+
+                        await paginator.paginate(ctx.channel, pages, ctx.message.author, page);
+                    }
+                },
+                {
+                    params: [
+                        {
+                            type: STRING,
+                            name: "module or command",
+                            required: true,
+                        },
+                        {
+                            type: UINT,
+                            name: "page",
+                            required: false,
+                        },
+                    ],
+                    executable: async (ctx, modorcmd : string, page? : number) => {
+                        const languager = await ctx.languager;
+                        const paginator = ctx.bot.getPluginsOfType(Paginator)[0];
+                        const commands = ctx.bot.getPluginsOfType(Module).filter(a => a.commands.find(
+                            a => a.name.includes(modorcmd) ||
+                                a.aliases.find(b => b.includes(modorcmd))
+                        ) || a.name.includes(modorcmd)).map(
+                            a => a.name.includes(modorcmd)
+                                ? a.commands
+                                : a.commands.filter(a =>
+                                    a.name.includes(modorcmd) ||
+                                    a.aliases.find(a => a.includes(modorcmd))
+                                )
+                        ).flat();
+
+                        if (commands.length == 0) {
+                            ctx.channel.send(languager.string("modules.main.help.search.nothing", {
+                                query: modorcmd,
+                            }));
+                            return;
+                        }
+                        else if (commands.length == 1) {
+                            const a = commands[0];
+                            const info = new Array<string>();
+
+                            if (a.category) info.push(
+                                `${languager.string(`modules.main.help.cmdinfo.category`)}: **${a.category}**`
+                            );
+                            if (a.aliases.length > 0) info.push(
+                                `${languager.string(`modules.main.help.cmdinfo.aliases`)}: ${a.aliases.map(a => `**${a}**`).join(', ')}`
+                            );
+                            if (a.subcommands.size > 0) info.push(
+                                `${
+                                    languager.string(`modules.main.help.cmdinfo.subcommands`)
+                                }: ${a.subcommands.keyArray().map((a) => `**${a}**`).join(', ')}`
+                            );
+                            if (Array.isArray(a.executable)) info.push(
+                                `${
+                                    languager.string(`modules.main.help.cmdinfo.usage`)
+                                }:${a.executable.length == 1 ? ' ' : '\n'}\`\`\`${
+                                    a.executable.map(b => `${a.name} ${b.params.map(c => {
+                                        const param = (() => {
+                                            if (Array.isArray(c)) {
+                                                return {
+                                                    type: c[0],
+                                                    required: c[1],
+                                                    name: c[2],
+                                                } as { type : Decryptor, required? : boolean, name? : string }
+                                            }
+                                            else return c;
+                                        })();
+
+                                        const insides = `${param.name && param.name.length > 0 ? `${param.name} : ` : ''}${param.type.toString()}`;
+
+                                        return param.required ? `<${insides}>` : `[${insides}]`;
+                                    }).join(' ')}`).join('\n')
+                                }\`\`\``
+                            );
+                            info.push(`> ${languager.string(`meta.commands.${a.name}.description`).replace(/\n/g, "\n> ")}`);
+
+                            ctx.channel.send(new MessageEmbed({
+                                title: a.name,
+                                description: info.join('\n'),
+                            }));
+                        }
+                        else {
+                            if (!page || isNaN(page)) page = 0;
+                            else page--;
+
+                            const lp = Math.floor(commands.length / 10);
+
+                            if (page < 0) page = lp - page;
+                            if (page > lp) page = page % lp;
+
+                            const pages = new Array(lp).fill(1).map((_, i) => commands.slice(i * 10, i * 10 + 10))
+                                .map(a => {
+                                    return new MessageEmbed({
+                                        title: languager.string("modules.main.help.nosearch.title", {
+                                            page: `${page}`,
+                                            lp: `${lp}`,
+                                        }),
+                                        description: languager.string("modules.main.help.nosearch.description", {
+                                            page: `${page}`,
+                                            lp: `${lp}`,
+                                        }),
+                                        fields: a.map(a => {
+                                            return {
+                                                name: a.name,
+                                                value: languager.string(`meta.commands.${a.name}.description`),
+                                                inline: true,
+                                            }
+                                        }),
+                                    });
+                                });
+
+                            if (ctx.channel instanceof NewsChannel) return;
+
+                            await paginator.paginate(ctx.channel, pages, ctx.message.author, page);
+                        }
+                    }
+                },
+            ]
         }));
 
         this.addCommand(new Command({
@@ -97,8 +206,10 @@ export class Main extends Module { // this module probably will be added to the 
             executable: async (ctx) => {
                 const user = ctx.message.client.user as ClientUser;
 
+                const languager = await ctx.languager;
+
                 if (!user.bot) { //why?
-                    ctx.message.channel.send("this client is a selfbot. why?");
+                    ctx.message.channel.send("this is a selfbot. why?");
                     return;
                 }
 
@@ -120,7 +231,7 @@ export class Main extends Module { // this module probably will be added to the 
                     },
                     fields: [
                         {
-                            name: "Owner",
+                            name: languager.string('modules.main.info.owner'),
                             value: app.owner instanceof User
                                 ? `👑 <@${app.owner.id}>`
                                 : (
@@ -133,14 +244,14 @@ export class Main extends Module { // this module probably will be added to the 
                                             : '🔧'
                                         } <@${a.id}>`
                                     ).join('\n')
-                                    : `No owner`
+                                    : languager.string('modules.main.info.noowner')
                                 ),
                             inline: true,
                         },
                         {
-                            name: "Information",
+                            name: languager.string('modules.main.info.info'),
                             value: [
-                                `Host: ${platform()} ${release()}`,
+                                `${languager.string('modules.main.info.info.host')}: ${platform()} ${release()}`,
                                 `Node.js: ${process.version}`,
                                 `Discord.js: ${dsversion}`,
                                 `OpenJSK: ${ojversion}`,
@@ -151,23 +262,19 @@ export class Main extends Module { // this module probably will be added to the 
                             const fields = new Array<EmbedFieldData>();
 
                             if (!app.botPublic) fields.push({
-                                name: "🔒 Private bot",
-                                value: "This bot is private and can only be added by its developer",
+                                name: `🔒 ${languager.string('modules.main.info.info.additional.private.title')}`,
+                                value: languager.string('modules.main.info.info.additional.private.description'),
                             });
 
                             if (app.botRequireCodeGrant) fields.push({
-                                name: "📜 Bot requires code grant",
-                                value: [
-                                    "While adding this bot to your server you will be",
-                                    "redirected to an external website provided by bot",
-                                    "developer"
-                                ].join(' '),
+                                name: `📜 ${languager.string('modules.main.info.info.additional.oauthgrant.title')}`,
+                                value: languager.string('modules.main.info.info.additional.oauthgrant.description'),
                             });
 
                             if (app.botPublic) {
                                 if (!app.botRequireCodeGrant) {
                                     fields.push({
-                                        name: "➕ Add bot to your server",
+                                        name: `➕ ${languager.string('modules.main.info.info.additional.public.title')}`,
                                         value: [
                                             `[https://discord.com/api/oauth2/authorize?client_id=${app.id}&permissions=0&scope=bot](Without permissions)`,
                                             `[https://discord.com/api/oauth2/authorize?client_id=${app.id}&permissions=8&scope=bot](Admin permissions)`,
@@ -177,8 +284,8 @@ export class Main extends Module { // this module probably will be added to the 
                                 }
                                 else {
                                     fields.push({
-                                        name: "➕ Add bot to your server",
-                                        value: "**Ask developer for a link**",
+                                        name: `➕ ${languager.string('modules.main.info.info.additional.public.title')}`,
+                                        value: `**${languager.string('modules.main.info.info.additional.public.oauthgrant')}**`,
                                     });
                                 }
                             }

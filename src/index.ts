@@ -5,5 +5,6 @@ export * from './Bot';
 export * from './Command';
 export * from './Context';
 
+export * from './decryptors';
 export * from './plugins';
 export * from './behavours';

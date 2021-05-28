@@ -1,4 +1,4 @@
-import { Bot, CommandExecutable, Context } from "..";
+import { Context } from "..";
 
 export interface DecryptorResult {
     value : any;
@@ -6,56 +6,74 @@ export interface DecryptorResult {
 };
 
 export abstract class Decryptor {
-    constructor(bot : Bot) {
-        this.bot = bot;
-    }
-
-    public abstract decrypt(text : string) : DecryptorResult;
-
-    private bot : Bot;
+    public abstract decrypt(text : Decryptable) : Promise<DecryptorResult>;
+    public abstract toString() : string;
 };
 
-export class Declaration {
-    constructor(executable : CommandExecutable, decryptors : Decryptor[] = [], optionalDecryptors : Decryptor[] = []) {
-        this.decryptors = decryptors;
-        this.optionalDecryptors = optionalDecryptors;
-        this.executable = executable;
+export interface Declaration {
+    params: ({
+        type: Decryptor;
+        required?: boolean;
+        name?: string;
+    } | [Decryptor, string?, boolean?])[];
+    executable: (ctx : Context, ...args : any[]) => Promise<any>;
+};
+
+export class Decryptable {
+    private constructor(public text : string) {}
+
+    public get() {
+        return this.text[0] || '';
     }
 
-    private decryptors;
-    private optionalDecryptors;
-    private executable;
-
-    public async checkAndExecute(ctx : Context, ...args : string[]) : Promise<boolean> {
-        if (
-            args.length < this.decryptors.length ||
-            args.length > (
-                this.decryptors.length &&
-                this.optionalDecryptors.length
-            )
-            ) return false;
-
-        const results = await Promise.all(
-            args.map(
-                (a, i) => i < this.decryptors.length
-                ? this.decryptors[i].decrypt(a)
-                : this.optionalDecryptors[this.decryptors.length - i].decrypt(a)
-            )
-        );
-
-        if (!results.every(a => a.success)) return false;
-
-        await this.executable(ctx, ...[results.map(a => a.value)]);
-
-        return true;
-    }
-}
-
-export class ParamList {
-    constructor(declarations : Declaration[]) {
-        this.declarations = declarations;
+    public get end() {
+        return this.text.length == 0;
     }
 
-    private declarations;
-}
+    public shift() {
+        this.text = this.text.substr(1);
+    }
 
+    public static normalizeParam(param : {
+        type: Decryptor;
+        required?: boolean;
+        name?: string;
+    } | [Decryptor, string?, boolean?]) {
+        if (Array.isArray(param)) {
+            return {
+                type: param[0],
+                name: param[1],
+                required: param[2],
+            } as { type: Decryptor, name?: string, required?: boolean }
+        }
+        else return param;
+    }
+
+    public static async decrypt(rawargs : string, declaration : Declaration) : Promise<{ result: DecryptorResult[], declaration: Declaration } | false> {
+        const decr = new this(rawargs);
+        const res = [];
+
+        for (const param of declaration.params) {
+            const prm = Decryptable.normalizeParam(param);
+
+            // const text = decr.text;
+
+            const decrr = await prm.type.decrypt(decr);
+            
+            if (!decrr.success && prm.required) {
+                // if (!prm.required) {
+                //     decr.text = text;
+                // }
+                // else
+                return false;
+            }
+
+            res.push(decrr);
+        }
+
+        return {
+            result: res,
+            declaration,
+        };
+    }
+};

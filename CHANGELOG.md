@@ -1,4 +1,21 @@
 
+# 1.2.2 (beta)
+Quality-of-life changes/Breaking release!
+
+## Changes
+
+- Now Bot.getPluginsOfType(...) can finally be used without a template
+- Switching to params instead of args (doesn't break anything)
+- Created and implemented languager plugin
+- Now requires less code to setup (Breaks existing code and causes issues because of plugin duplication)
+- Decryptors now are being used for params
+- Added default module
+- Added paginator as a plugin (has some issues)
+
+## Plans
+
+- Make paginator not a plugin because it makes no sense (english 100)
+
 # 1.2.1 (beta)
 Breaking release!
 
