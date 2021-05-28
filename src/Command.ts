@@ -1,4 +1,5 @@
 import { Collection, PermissionResolvable, Permissions } from "discord.js";
+import { Declaration, RAW } from "./decryptors";
 import { Context } from ".";
 
 export type CommandExecutable = (ctx : Context, ...params : any[]) => Promise<void>;
@@ -23,7 +24,7 @@ export interface CommandOptions {
     name? : string,
     aliases? : string[],
     category? : string,
-    executable? : CommandExecutable,
+    executable? : CommandExecutable | Declaration[],
     subcommands? : Command[],
     permissions? : CommandPermissions,
 }
@@ -40,7 +41,7 @@ export class Command {
 
         this.name = options.name || "";
         this.aliases = options.aliases || [];
-        this.executable = options.executable || (async () => {});
+        this.executable = options.executable;
         this.category = options.category || 'main';
         this.subcommands = new Collection();
         this.permissions = {
@@ -57,10 +58,32 @@ export class Command {
     public name : string;
     public category : string;
 
-    public executable : CommandExecutable;
+    public executable : CommandExecutable | Declaration[] | undefined; // handlers should look into subcommands in case theres no executable
 
     public subcommands : Collection<string, Command>;
 
     public permissions : { user : Permissions, bot : Permissions, level : CommandPermissionsLevel };
+
+    public get mapDeclarations() : Declaration[] {
+        const decs : Declaration[] = [];
+
+        if (Array.isArray(this.executable)) {
+            this.executable.forEach(a => decs.push(a));
+        }
+        else if (this.executable) {
+            decs.push({
+                executable: this.executable,
+                params: [
+                    {
+                        type: RAW,
+                        name: 'args...',
+                        required: false,
+                    }
+                ]
+            });
+        }
+
+        return decs;
+    }
 }
 

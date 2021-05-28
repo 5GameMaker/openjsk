@@ -25,12 +25,10 @@ export abstract class Plugin {
 
     public behavours : Behavour[];
 
-    protected addBehavour<T extends typeof Behavour>(behavour : T | Behavour) {
-        if (behavour == Behavour) throw new Error("Cannot create instance of abstract class");
-        const obj = behavour instanceof Behavour ? behavour : new (behavour as any)(this.parent) as Behavour;
-        this.behavours.push(obj);
-        if (this.__loaded) obj.load();
-        return obj;
+    protected addBehavour(behavour : Behavour) {
+        this.behavours.push(behavour);
+        if (this.__loaded) behavour.load();
+        return behavour;
     }
 }
 

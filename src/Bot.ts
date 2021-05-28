@@ -1,12 +1,15 @@
 import { Client, ClientOptions } from "discord.js";
 import { Plugin } from ".";
 import { Options, Sequelize } from 'sequelize';
-import { DefaultPrefixManager, DefaultHandler, Paginator, Main } from "./plugins/implementations";
+import { DefaultPrefixManager, DefaultHandler, DefaultLanguager, Paginator, Main } from "./plugins/implementations";
+import { LanguagerSettings } from "./plugins/Languager";
+import { join } from "path";
 
 export interface BotOptions extends ClientOptions {
     prefix: string | string[],
     database: Options,
     unconfigured: boolean,
+    languager: LanguagerSettings,
 }
 
 export class Bot extends Client {
@@ -26,7 +29,11 @@ export class Bot extends Client {
                     "USER",
                 ],
                 unconfigured: false,
-            } as BotOptions && options
+                languager: {
+                    defaultLanguage: 'en',
+                    langpath: join(__dirname, "../lang"),
+                }
+            } as Partial<BotOptions> && options
         );
 
         this.db = new Sequelize(options.database);
@@ -36,6 +43,10 @@ export class Bot extends Client {
             this.loadPlugin(new DefaultHandler(this));
             this.loadPlugin(new Paginator(this));
             this.loadPlugin(new Main(this));
+            this.loadPlugin(new DefaultLanguager(this, this.options.languager || {
+                defaultLanguage: 'en',
+                langpath: join(__dirname, "../lang"),
+            }));
         }
     }
 
@@ -44,7 +55,7 @@ export class Bot extends Client {
 
     declare public options : BotOptions;
 
-    public getPluginsOfType<T extends Plugin>(type : typeof Plugin) : T[] {
+    public getPluginsOfType<T extends Plugin>(type : abstract new (...a : any[]) => T) : T[] {
         return this.plugins.filter(a => a instanceof type) as T[];
     }
 

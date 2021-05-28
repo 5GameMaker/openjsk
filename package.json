@@ -1,6 +1,6 @@
 {
   "name": "openjsk",
-  "version": "1.2.1",
+  "version": "1.2.2",
   "description": "Jishaku&discord.ext for nodejs",
   "main": "build/index.js",
   "scripts": {
@@ -8,7 +8,7 @@
     "build": "tsc"
   },
   "author": "buj",
-  "license": "ISC",
+  "license": "SEE LICENSE IN LICENSE",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/5GameMaker/openjsk.git"

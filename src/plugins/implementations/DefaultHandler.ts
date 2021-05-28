@@ -1,9 +1,10 @@
 import { DMChannel, GuildMember, Message, Permissions, Team, TextChannel, User } from 'discord.js';
 import { Module, Context, Command, CommandPermissionsLevel, CommandTerminationReason } from '../..';
 import { CommandHandler, PrefixManager } from '..';
+import { Declaration, Decryptable, DecryptorResult } from '../../decryptors';
 
 export class DefaultHandler extends CommandHandler {
-    private split(text : string) : string[] {
+    private split(text : string) : string[] { // For legacy args (don't use)
         const arr = new Array<string>();
 
         let backslash = false;
@@ -36,7 +37,7 @@ export class DefaultHandler extends CommandHandler {
         return arr;
     }
 
-    private async checkPermissions(command : Command, message : Message) : Promise<null | CommandTerminationReason> {
+    private async checkPermissions(command : Command, message : Message) : Promise<null | CommandTerminationReason> { // idk how to read this
         if (!(message.channel instanceof DMChannel) && message.guild) {
             if (
                 !(
@@ -126,11 +127,25 @@ export class DefaultHandler extends CommandHandler {
         return null;
     }
 
-    private async getCommand(commands : Command[], args : string[], message : Message) : Promise<Command | CommandTerminationReason> {
-        if (args.length == 0) return CommandTerminationReason.NO_COMMAND_USED;
+    private async getCommand(commands : Command[], args : { str : string }, message : Message) : Promise<Command | CommandTerminationReason> {
+        args.str = args.str.trim();
+        if (args.str.length == 0) return CommandTerminationReason.NO_COMMAND_USED;
+
+        let selected = "";
+
+        function named(name : string) : boolean {
+            if (!args.str.startsWith(name)) return false;
+
+            if (args.str.length != name.length) {
+                if (!"\n\t ".includes(args.str[name.length])) return false;
+            }
+
+            selected = name;
+            return true;
+        }
 
         const command = commands
-            .filter(a => a.name == args[0] || a.aliases.includes(args[0]))[0];
+            .filter(a => named(a.name) || a.aliases.find(named))[0];
         
         if (!command) return CommandTerminationReason.UNKNOWN_COMMAND;
 
@@ -138,9 +153,10 @@ export class DefaultHandler extends CommandHandler {
 
         if (terminate) return terminate;
 
-        args.shift();
+        if (args.str.length > selected.length) args.str = args.str.substr(selected.length).trim(); // shift command name
+        else args.str = "";
 
-        if (args.length > 0) {
+        if (args.str.length > 0) {
             const subcommand = await this.getCommand(
                 [...command.subcommands.values()],
                 args,
@@ -150,6 +166,10 @@ export class DefaultHandler extends CommandHandler {
             if (
                 subcommand != CommandTerminationReason.UNKNOWN_COMMAND
             ) return subcommand;
+        }
+
+        if (!command.executable) {
+            return CommandTerminationReason.UNKNOWN_SUBCOMMAND;
         }
 
         return command;
@@ -174,7 +194,7 @@ export class DefaultHandler extends CommandHandler {
 
         if (!prefix) return;
 
-        const args = this.split(message.content.substr(prefix.length));
+        const args = { str : message.content.substr(prefix.length) };
 
         const command = await this.getCommand(
             this.parent.getPluginsOfType<Module>(Module)
@@ -251,7 +271,37 @@ export class DefaultHandler extends CommandHandler {
         });
 
         try {
-            await command.executable(context, ...args);
+            if (command.executable instanceof Function) {
+                await command.executable(context, args.str.split(/[ \n\t]/g));
+            }
+            else if (command.executable) {
+                const declarations = command.mapDeclarations;
+                const declres = (await Promise.all(declarations.map(a => Decryptable.decrypt(args.str, a)))).filter(a => a !== false) as {
+                    result: DecryptorResult[],
+                    declaration: Declaration,
+                }[];
+
+                // search for the best match
+
+                const scores = declres.map(a => {
+                    const paramscores = a.declaration.params.map((b, i) : number => {
+                        const param = Decryptable.normalizeParam(b);
+                        const result = a.result[i];
+
+                        if (param.required) return 1;
+                        else return result.success ? 1 : 0;
+                    }).reduce((a, b) => a + b);
+
+                    return {
+                        paramscores,
+                        decl: a,
+                    };
+                }).sort((a, b) => b.paramscores - a.paramscores);
+
+                const decl = scores[0].decl;
+
+                await decl.declaration.executable(context, ...decl.result.map(a => a.value));
+            }
         } catch (err) {
             console.error(err);
         }
