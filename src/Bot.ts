@@ -1,7 +1,7 @@
 import { Client, ClientOptions } from "discord.js";
 import { Plugin } from ".";
 import { Options, Sequelize } from 'sequelize';
-import { DefaultPrefixManager, DefaultHandler, DefaultLanguager, Paginator, Main } from "./plugins/implementations";
+import { DefaultPrefixManager, DefaultHandler, DefaultLanguager, Paginator, Main, Jishaku } from "./plugins/implementations";
 import { LanguagerSettings } from "./plugins/Languager";
 import { join } from "path";
 
@@ -31,7 +31,7 @@ export class Bot extends Client {
                 unconfigured: false,
                 languager: {
                     defaultLanguage: 'en',
-                    langpath: join(__dirname, "../lang"),
+                    langpath: [ join(__dirname, "../lang") ],
                 }
             } as Partial<BotOptions> && options
         );
@@ -39,14 +39,22 @@ export class Bot extends Client {
         this.db = new Sequelize(options.database);
 
         if (!this.options.unconfigured) {
+            const lp = join(__dirname, "../lang");
+            if (!this.options.languager) {
+                this.options.languager = {
+                    defaultLanguage: 'en',
+                    langpath: [ lp ],
+                };
+            }
+            else this.options.languager.langpath.push(lp);
+            
+
             this.loadPlugin(new DefaultPrefixManager(this));
             this.loadPlugin(new DefaultHandler(this));
             this.loadPlugin(new Paginator(this));
             this.loadPlugin(new Main(this));
-            this.loadPlugin(new DefaultLanguager(this, this.options.languager || {
-                defaultLanguage: 'en',
-                langpath: join(__dirname, "../lang"),
-            }));
+            this.loadPlugin(new Jishaku(this));
+            this.loadPlugin(new DefaultLanguager(this, this.options.languager));
         }
     }
 

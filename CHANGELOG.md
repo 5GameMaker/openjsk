@@ -1,4 +1,14 @@
 
+# 1.2.2 (beta, 1)
+Some fixes
+
+## Changes
+
+- Added `language` command
+- `DefaultPrefixManager`/`DefaultLanguager` fixes
+- Added languager support to every command
+- Added jishaku command (totally not stolen from discord.ext)
+
 # 1.2.2 (beta)
 Quality-of-life changes/Breaking release!
 
@@ -11,6 +21,7 @@ Quality-of-life changes/Breaking release!
 - Decryptors now are being used for params
 - Added default module
 - Added paginator as a plugin (has some issues)
+- Upgraded `Context` a bit
 
 ## Plans
 

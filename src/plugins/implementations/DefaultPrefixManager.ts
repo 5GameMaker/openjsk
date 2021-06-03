@@ -1,7 +1,6 @@
 import { Guild, Message, TextChannel } from 'discord.js';
-import { PrefixBinding } from 'openjsk/src/plugins/PrefixManager';
 import { BIGINT, Model, TEXT } from 'sequelize';
-import { PrefixManager } from '..';
+import { PrefixManager, PrefixBinding } from '..';
 import { BotOptions } from '../..';
 
 export class DefaultPrefixManager extends PrefixManager {
@@ -140,7 +139,7 @@ export class DefaultPrefixManager extends PrefixManager {
             }
         })));
 
-        this.cache(binding, id, []);
+        this.cache(binding, id, _prefix);
     }
 
     public async clearPrefix(binding : PrefixBinding, id : string) : Promise<void> {

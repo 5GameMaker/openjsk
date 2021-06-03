@@ -1,6 +1,6 @@
 import { ClientUser, EmbedFieldData, MessageEmbed, NewsChannel, Team, User, version as dsversion } from "discord.js";
 import { Bot, BotOptions, Command, CommandPermissionsLevel, version as ojversion, Decryptor, UINT, STRING } from "../..";
-import { Module, PrefixManager } from "..";
+import { Module, PrefixManager, Languager } from "..";
 import { Paginator } from '.';
 import { platform, release } from "os";
 
@@ -32,7 +32,7 @@ export class Main extends Module { // this module probably will be added to the 
 
                         const commands = ctx.bot.getPluginsOfType(Module).map(a => a.commands).flat();
                         const paginator = ctx.bot.getPluginsOfType(Paginator)[0];
-                        const languager = await ctx.languager;
+                        const languager = ctx.languager;
 
                         const lp = Math.floor(commands.length / 10);
 
@@ -79,7 +79,7 @@ export class Main extends Module { // this module probably will be added to the 
                         },
                     ],
                     executable: async (ctx, modorcmd : string, page? : number) => {
-                        const languager = await ctx.languager;
+                        const languager = ctx.languager;
                         const paginator = ctx.bot.getPluginsOfType(Paginator)[0];
                         const commands = ctx.bot.getPluginsOfType(Module).filter(a => a.commands.find(
                             a => a.name.includes(modorcmd) ||
@@ -190,8 +190,8 @@ export class Main extends Module { // this module probably will be added to the 
             },
             executable: async (ctx) => {
                 ctx.message.channel.send(new MessageEmbed({
-                    title: "Bot ping",
-                    description: `:ping_pong: **Ping**: ${ctx.message.client.ws.ping}ms`,
+                    title: ctx.languager.string("modules.main.ping.title"),
+                    description: `:ping_pong: **${ctx.languager.string("modules.main.ping.ping")}**: ${ctx.message.client.ws.ping}ms`,
                 }));
             }
         }));
@@ -206,7 +206,7 @@ export class Main extends Module { // this module probably will be added to the 
             executable: async (ctx) => {
                 const user = ctx.message.client.user as ClientUser;
 
-                const languager = await ctx.languager;
+                const languager = ctx.languager;
 
                 if (!user.bot) { //why?
                     ctx.message.channel.send("this is a selfbot. why?");
@@ -276,9 +276,15 @@ export class Main extends Module { // this module probably will be added to the 
                                     fields.push({
                                         name: `➕ ${languager.string('modules.main.info.info.additional.public.title')}`,
                                         value: [
-                                            `[https://discord.com/api/oauth2/authorize?client_id=${app.id}&permissions=0&scope=bot](Without permissions)`,
-                                            `[https://discord.com/api/oauth2/authorize?client_id=${app.id}&permissions=8&scope=bot](Admin permissions)`,
-                                            `[https://discord.com/api/oauth2/authorize?client_id=${app.id}&permissions=-1&scope=bot](Custom setup)`,
+                                            `[https://discord.com/api/oauth2/authorize?client_id=${app.id}&permissions=0&scope=bot](${
+                                                languager.string('modules.main.info.info.additional.public.permissions.noperms')
+                                            })`,
+                                            `[https://discord.com/api/oauth2/authorize?client_id=${app.id}&permissions=8&scope=bot](${
+                                                languager.string('modules.main.info.info.additional.public.permissions.admin')
+                                            })`,
+                                            `[https://discord.com/api/oauth2/authorize?client_id=${app.id}&permissions=-1&scope=bot](${
+                                                languager.string('modules.main.info.info.additional.public.permissions.custom')
+                                            })`,
                                         ].join('\n'),
                                     });
                                 }
@@ -307,24 +313,43 @@ export class Main extends Module { // this module probably will be added to the 
                 const uprefix = await pm.getPrefix('USER', ctx.message.author.id);
                 const gprefix = ctx.message.guild ? await pm.getPrefix('GUILD', ctx.message.guild.id) : null;
 
+                const languager = ctx.languager;
+                const [
+                    STR_DEFAULT_TITLE,
+                    STR_DEFAULT_FOOTER,
+                    STR_BOT_PREFIX,
+                    STR_CUSTOM_PREFIX,
+                    STR_GUILD_PREFIX,
+                    STR_CURRENT_PREFIX,
+                ] = [
+                    "modules.main.prefix.default.title",
+                    "modules.main.prefix.default.footer",
+                    "modules.main.prefix.default.type.bot",
+                    "modules.main.prefix.default.type.custom",
+                    "modules.main.prefix.default.type.guild",
+                    "modules.main.prefix.default.type.current",
+                ].map(a => languager.string(a, {
+                    prefix: prefix[0],
+                }));
+
                 ctx.message.channel.send(new MessageEmbed({
                     author: {
                         name: ctx.message.author.username,
                         icon_url: ctx.message.author.avatarURL({ dynamic: true }) || undefined,
                     },
-                    title: "Prefix",
+                    title: STR_DEFAULT_TITLE,
                     description: [
-                        `Bot prefix: ${[(bot.options as BotOptions).prefix]
+                        `${STR_BOT_PREFIX}: ${[(bot.options as BotOptions).prefix || 'en']
                             .flat()
                             .map(a => `\`\`${a.replace(/`/g, "\u200b`\u200b").replace(/\u200b+/, "\u200b")}\`\``)}`,
-                        `Custom prefix: ${uprefix.map(a => `\`\`${a.replace(/`/g, "\u200b`\u200b").replace(/\u200b+/, "\u200b")}\`\``)}`,
+                        `${STR_CUSTOM_PREFIX}: ${uprefix.map(a => `\`\`${a.replace(/`/g, "\u200b`\u200b").replace(/\u200b+/, "\u200b")}\`\``)}`,
                         ...(() => gprefix ? [
-                            `Guild prefix: ${gprefix.map(a => `\`\`${a.replace(/`/g, "\u200b`\u200b").replace(/\u200b+/, "\u200b")}\`\``)}`,
+                            `${STR_GUILD_PREFIX}: ${gprefix.map(a => `\`\`${a.replace(/`/g, "\u200b`\u200b").replace(/\u200b+/, "\u200b")}\`\``)}`,
                         ] : [])().flat(),
-                        `Current prefix: \`\`${prefix}\`\``,
+                        `${STR_CURRENT_PREFIX}: ${prefix.map(a => `\`\`${a.replace(/`/g, "\u200b`\u200b").replace(/\u200b+/, "\u200b")}\`\``)}`,
                     ].join('\n'),
                     footer: {
-                        text: `Use ${prefix}prefix add guild/self <prefix> to change your prefix`,
+                        text: STR_DEFAULT_FOOTER,
                     },
                 }));
             },
@@ -332,42 +357,226 @@ export class Main extends Module { // this module probably will be added to the 
                 new Command({
                     name: 'add',
                     executable: async (ctx, scope, prefix) => {
+                        const languager = ctx.languager;
+                        const [
+                            STR_ERRORS_USAGE,
+                            STR_ERRORS_INVALID_PREFIX,
+                            STR_ERRORS_NOT_IN_GUILD,
+                            STR_ERRORS_NOT_A_MEMBER,
+                            STR_ERRORS_NO_PERMISSION,
+                            STR_ERRORS_LIMITED,
+                            STR_SUCCESS,
+                        ] = [
+                            "modules.main.prefix.add.errors.usage",
+                            "modules.main.prefix.add.errors.invalid_prefix",
+                            "modules.main.prefix.add.errors.not_in_guild",
+                            "modules.main.prefix.add.errors.not_a_member",
+                            "modules.main.prefix.add.errors.no_permission",
+                            "modules.main.prefix.add.errors.limited",
+                            "modules.main.prefix.add.success",
+                        ].map(a => languager.string(a));
+
                         if (typeof prefix != 'string' || !['guild', 'self'].includes(scope)) {
-                            ctx.message.channel.send("Usage: prefix add <scope> <prefix>");
+                            ctx.message.channel.send(STR_ERRORS_USAGE);
                             return;
                         }
 
                         if (!prefix.match(/^[a-zA-Z!@#$%^&*~()\[\]\{\}\-+=*\/\?.,:;'"`<>]{1,16}$/)) {
-                            ctx.message.channel.send("Invalid prefix");
+                            ctx.message.channel.send(STR_ERRORS_INVALID_PREFIX);
+                            return;
+                        }
+
+                        const pm = bot.getPluginsOfType<PrefixManager>(PrefixManager)[0];
+
+                        if (scope == 'guild') {
+                            if (!ctx.message.guild) {
+                                await ctx.message.channel.send(STR_ERRORS_NOT_IN_GUILD);
+                                return;
+                            }
+                            if (!ctx.message.member) {
+                                await ctx.message.channel.send(STR_ERRORS_NOT_A_MEMBER);
+                                return;
+                            }
+                            if (!ctx.message.member.hasPermission('MANAGE_GUILD')) {
+                                await ctx.message.channel.send(STR_ERRORS_NO_PERMISSION);
+                                return;
+                            }
+                            if ((await pm.getPrefix('GUILD', ctx.message.guild.id)).length >= 4) {
+                                await ctx.message.channel.send(STR_ERRORS_LIMITED);
+                                return;
+                            }
+                        }
+                        else if ((await pm.getPrefix('USER', ctx.message.author.id)).length >= 4) {
+                            await ctx.message.channel.send(STR_ERRORS_LIMITED);
+                            return;
+                        }
+
+                        await pm.addPrefix(scope == 'self' ? 'USER' : 'GUILD', (
+                            scope == 'self' ? ctx.message.author : ctx.message.guild || { id: "" }
+                        ).id, prefix);
+
+                        ctx.message.channel.send(STR_SUCCESS);
+                    }
+                }),
+                new Command({
+                    name: 'clear',
+                    executable: async (ctx, scope) => {
+                        const languager = ctx.languager;
+                        const [
+                            STR_ERRORS_USAGE,
+                            STR_ERRORS_NOT_IN_GUILD,
+                            STR_ERRORS_NOT_A_MEMBER,
+                            STR_ERRORS_NO_PERMISSION,
+                            STR_SUCCESS,
+                        ] = [
+                            "modules.main.prefix.clear.errors.usage",
+                            "modules.main.prefix.clear.errors.not_in_guild",
+                            "modules.main.prefix.clear.errors.not_a_member",
+                            "modules.main.prefix.clear.errors.no_permission",
+                            "modules.main.prefix.clear.success",
+                        ].map(a => languager.string(a));
+
+                        if (!['guild', 'self'].includes(scope)) {
+                            ctx.message.channel.send(STR_ERRORS_USAGE);
                             return;
                         }
 
                         if (scope == 'guild') {
                             if (!ctx.message.guild) {
-                                await ctx.message.channel.send("Can only change guild prefix inside a guild");
+                                await ctx.message.channel.send(STR_ERRORS_NOT_IN_GUILD);
                                 return;
                             }
                             if (!ctx.message.member) {
-                                await ctx.message.channel.send("You are not a member of this guild");
+                                await ctx.message.channel.send(STR_ERRORS_NOT_A_MEMBER);
                                 return;
                             }
                             if (!ctx.message.member.hasPermission('MANAGE_GUILD')) {
-                                await ctx.message.channel.send("MANAGE_GUILD permission is required for changing guild's prefix");
+                                await ctx.message.channel.send(STR_ERRORS_NO_PERMISSION);
                                 return;
                             }
                         }
 
-
                         const pm = bot.getPluginsOfType<PrefixManager>(PrefixManager)[0];
 
-                        await pm.addPrefix(scope == 'self' ? 'USER' : 'GUILD', ctx.message.author.id, prefix);
+                        await pm.clearPrefix(scope == 'self' ? 'USER' : 'GUILD', (
+                            scope == 'self' ? ctx.message.author : ctx.message.guild || { id: "" }
+                        ).id);
 
-                        ctx.message.channel.send("Prefix has been changed");
+                        ctx.message.channel.send(STR_SUCCESS);
+                    }
+                })
+            ]
+        }));
+
+        this.addCommand(new Command({ // clearly not copypasted
+            name: 'language',
+            aliases: ['lang'],
+            category: 'main',
+            executable: async (ctx) => {
+                const pm = bot.getPluginsOfType(PrefixManager)[0];
+                const lm = bot.getPluginsOfType(Languager)[0];
+                const ap = (await pm.getPrefixInContext(ctx.message))[0];
+                const prefix = await lm.getLanguageIn(ctx.message);
+                const uprefix = await lm.getLanguage({ user : ctx.message.author.id });
+                const gprefix = ctx.message.guild ? await lm.getLanguage({ guild : ctx.message.guild.id }) : null;
+
+                const languager = ctx.languager;
+                const [
+                    STR_DEFAULT_TITLE,
+                    STR_DEFAULT_FOOTER,
+                    STR_BOT_LANGUAGE,
+                    STR_CUSTOM_LANGUAGE,
+                    STR_GUILD_LANGUAGE,
+                    STR_CURRENT_LANGUAGE,
+                ] = [
+                    "modules.main.language.default.title",
+                    "modules.main.language.default.footer",
+                    "modules.main.language.default.type.bot",
+                    "modules.main.language.default.type.custom",
+                    "modules.main.language.default.type.guild",
+                    "modules.main.language.default.type.current",
+                ].map(a => languager.string(a, {
+                    prefix: ap || 'dev$',
+                }));
+
+                ctx.message.channel.send(new MessageEmbed({
+                    author: {
+                        name: ctx.message.author.username,
+                        icon_url: ctx.message.author.avatarURL({ dynamic: true }) || undefined,
+                    },
+                    title: STR_DEFAULT_TITLE,
+                    description: [
+                        `${STR_BOT_LANGUAGE}: \`\`${((
+                            ctx.bot.options.languager || { defaultLanguage : 'en' }
+                        ).defaultLanguage || 'en').replace(/`/g, "\u200b`\u200b").replace(/\u200b+/, "\u200b")}\`\``,
+                        `${STR_CUSTOM_LANGUAGE}: \`\`${uprefix.replace(/`/g, "\u200b`\u200b").replace(/\u200b+/, "\u200b")}\`\``,
+                        ...(() => gprefix ? [
+                            `${STR_GUILD_LANGUAGE}: \`\`${gprefix.replace(/`/g, "\u200b`\u200b").replace(/\u200b+/, "\u200b")}\`\``,
+                        ] : [])().flat(),
+                        `${STR_CURRENT_LANGUAGE}: \`\`${prefix.replace(/`/g, "\u200b`\u200b").replace(/\u200b+/, "\u200b")}\`\``,
+                    ].join('\n'),
+                    footer: {
+                        text: STR_DEFAULT_FOOTER,
+                    },
+                }));
+            },
+            subcommands: [
+                new Command({
+                    name: 'set',
+                    executable: async (ctx, scope, language) => {
+                        const languager = ctx.languager;
+                        const [
+                            STR_ERRORS_USAGE,
+                            STR_ERRORS_INVALID_LANGUAGE,
+                            STR_ERRORS_NOT_IN_GUILD,
+                            STR_ERRORS_NOT_A_MEMBER,
+                            STR_ERRORS_NO_PERMISSION,
+                            STR_SUCCESS,
+                        ] = [
+                            "modules.main.language.set.errors.usage",
+                            "modules.main.language.set.errors.invalid_language",
+                            "modules.main.language.set.errors.not_in_guild",
+                            "modules.main.language.set.errors.not_a_member",
+                            "modules.main.language.set.errors.no_permission",
+                            "modules.main.language.set.success",
+                        ].map(a => languager.string(a));
+
+                        if (typeof language != 'string' || !['guild', 'self'].includes(scope)) {
+                            ctx.message.channel.send(STR_ERRORS_USAGE);
+                            return;
+                        }
+
+                        if (!["en", "ru"].includes(language)) {
+                            ctx.message.channel.send(STR_ERRORS_INVALID_LANGUAGE);
+                            return;
+                        }
+
+                        if (scope == 'guild') {
+                            if (!ctx.message.guild) {
+                                await ctx.message.channel.send(STR_ERRORS_NOT_IN_GUILD);
+                                return;
+                            }
+                            if (!ctx.message.member) {
+                                await ctx.message.channel.send(STR_ERRORS_NOT_A_MEMBER);
+                                return;
+                            }
+                            if (!ctx.message.member.hasPermission('MANAGE_GUILD')) {
+                                await ctx.message.channel.send(STR_ERRORS_NO_PERMISSION);
+                                return;
+                            }
+                        }
+
+                        const pm = bot.getPluginsOfType(PrefixManager)[0];
+                        const lm = bot.getPluginsOfType(Languager)[0];
+
+                        await (scope == 'guild'
+                            ? lm.setLanguage({ guild: (ctx.message.guild || {}).id }, language)
+                            : lm.setLanguage({ user: ctx.message.author.id }, language));
+
+                        ctx.message.channel.send(STR_SUCCESS);
                     }
                 }),
             ]
         }));
-
-        // TODO: Add language command when it will be possible
     }
 }

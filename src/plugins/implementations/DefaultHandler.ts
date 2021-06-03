@@ -1,6 +1,6 @@
 import { DMChannel, GuildMember, Message, Permissions, Team, TextChannel, User } from 'discord.js';
 import { Module, Context, Command, CommandPermissionsLevel, CommandTerminationReason } from '../..';
-import { CommandHandler, PrefixManager } from '..';
+import { CommandHandler, PrefixManager, Languager } from '..';
 import { Declaration, Decryptable, DecryptorResult } from '../../decryptors';
 
 export class DefaultHandler extends CommandHandler {
@@ -204,54 +204,56 @@ export class DefaultHandler extends CommandHandler {
             message
         );
 
+        const languager = await this.parent.getPluginsOfType(Languager)[0].instantiate(message);
+
         if (!(command instanceof Command)) {
             switch (CommandTerminationReason[command]) {
                 case CommandTerminationReason[CommandTerminationReason.NOT_SERVER_MEMBER]:
                 case CommandTerminationReason[CommandTerminationReason.DM_NOT_SUPPORTED]:
                     {
-                        message.channel.send("This command cannot be executed in DMs");
+                        message.channel.send(languager.string("handler.errors.dm_not_supported"));
                     }
                     break;
 
                 case CommandTerminationReason[CommandTerminationReason.NOT_BOT_DEVELOPER]:
                     {
-                        message.channel.send("You're not a bot developer");
+                        message.channel.send(languager.string("handler.errors.not_bot_developer"));
                     }
                     break;
 
                 case CommandTerminationReason[CommandTerminationReason.NOT_BOT_OWNER]:
                     {
-                        message.channel.send("You're not a bot owner");
+                        message.channel.send(languager.string("handler.errors.not_bot_owner"));
                     }
                     break;
 
                 case CommandTerminationReason[CommandTerminationReason.NOT_SERVER_OWNER]:
                     {
-                        message.channel.send("You're not owning current server");
+                        message.channel.send(languager.string("handler.errors.not_server_owner"));
                     }
                     break;
 
                 case CommandTerminationReason[CommandTerminationReason.NO_BOT_PERMISSION]:
                     {
-                        message.channel.send(`Not enough permissions to execute this command`);
+                        message.channel.send(languager.string("handler.errors.no_bot_permission"));
                     }
                     break;
 
                 case CommandTerminationReason[CommandTerminationReason.NO_USER_PERMISSION]:
                     {
-                        message.channel.send(`You have no permission to execute this command`);
+                        message.channel.send(languager.string("handler.errors.no_user_permission"));
                     }
                     break;
 
                 case CommandTerminationReason[CommandTerminationReason.UNKNOWN_COMMAND]:
                     {
-                        message.channel.send(`Unknown command`);
+                        message.channel.send(languager.string("handler.errors.unknown_command"));
                     }
                     break;
 
                 case CommandTerminationReason[CommandTerminationReason.UNKNOWN_SUBCOMMAND]:
                     {
-                        message.channel.send(`Unknown subcommand`);
+                        message.channel.send(languager.string("handler.errors.unknown_subcommand"));
                     }
                     break;
 
@@ -259,7 +261,9 @@ export class DefaultHandler extends CommandHandler {
                     break;
             
                 default:
-                    message.channel.send(`Command execution failed: ${CommandTerminationReason[command]}`);
+                    message.channel.send(`${
+                        languager.string("handler.errors.unknown")
+                    }: ${CommandTerminationReason[command]}`);
                     break;
             }
 
@@ -268,11 +272,12 @@ export class DefaultHandler extends CommandHandler {
 
         const context = new Context({
             message,
+            languager,
         });
 
         try {
             if (command.executable instanceof Function) {
-                await command.executable(context, args.str.split(/[ \n\t]/g));
+                await command.executable(context, ...args.str.split(/[ \n\t]/g));
             }
             else if (command.executable) {
                 const declarations = command.mapDeclarations;
@@ -280,6 +285,11 @@ export class DefaultHandler extends CommandHandler {
                     result: DecryptorResult[],
                     declaration: Declaration,
                 }[];
+
+                if (declres.length == 0) {
+                    message.channel.send(languager.string("handler.errors.no_matching_signatures"));
+                    return;
+                }
 
                 // search for the best match
 
