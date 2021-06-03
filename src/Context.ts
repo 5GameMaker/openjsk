@@ -1,8 +1,9 @@
 import { DMChannel, Message, NewsChannel, TextChannel } from "discord.js";
-import { Bot, Languager, LanguagerInstance } from ".";
+import { Bot, LanguagerInstance } from ".";
 
 export interface ContextData {
     message : Message;
+    languager : LanguagerInstance;
 }
 
 export class Context {
@@ -11,14 +12,12 @@ export class Context {
         this.channel = this.message.channel;
         this.bot = this.message.client as Bot;
 
-        const languager = this.bot.getPluginsOfType(Languager)[0];
-
-        this.languager = languager.instantiate(this);
+        this.languager = data.languager;
     }
 
     public readonly message : Message;
     public readonly channel : TextChannel | DMChannel | NewsChannel;
     public readonly bot : Bot;
-    public readonly languager : Promise<LanguagerInstance>;
+    public readonly languager : LanguagerInstance;
 }
 

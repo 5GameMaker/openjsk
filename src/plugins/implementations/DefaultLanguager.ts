@@ -3,6 +3,7 @@ import { Languager, LanguagerInstance, LanguagerSettings, LanguagerTarget } from
 import { BIGINT, Model, TEXT } from "sequelize";
 import { existsSync, readFileSync } from "fs";
 import { join } from "path";
+import { Message } from "discord.js";
 
 export class DefaultLanguagerInstance extends LanguagerInstance {
     public string(name: string, data?: { [key: string]: string; }, lang? : string): string {
@@ -16,22 +17,30 @@ export class DefaultLanguagerInstance extends LanguagerInstance {
     }
 
     private lfc(lang? : string) {
-        const path = join(
-            this.settings.langpath || join(process.cwd(), "langs"),
-            join('/', `${lang || this.settings.lang || this.settings.defaultLanguage || 'en'}.json`),
-        );
+        const paths = [...this.settings.langpath || [], join(process.cwd(), "langs")];
+        const result = new Map<string, string>();
 
-        if (!existsSync(path)) return null;
+        paths.reverse().forEach(p => {
+            const path = join(
+                p,
+                join('/', `${lang || this.settings.lang || this.settings.defaultLanguage || 'en'}.json`),
+            );
 
-        return new Map<string, string>(Object.entries(JSON.parse(readFileSync(path, 'utf-8'))));
+            if (!existsSync(path)) return null;
+
+            const data = new Map<string, string>(Object.entries(JSON.parse(readFileSync(path, 'utf-8'))));
+            data.forEach((v, k) => result.set(k, v));
+        });
+        
+        return result;
     }
 }
 
 export class DefaultLanguager extends Languager {
-    public getLanguageIn(context: Context): Promise<string> {
+    public getLanguageIn(message: Message): Promise<string> {
         return this.getLanguage({
-            user: context.message.author.id,
-            guild: (context.message.guild || { id : undefined }).id,
+            user: message.author.id,
+            guild: (message.guild || { id : undefined }).id,
         });
     }
 
@@ -96,41 +105,45 @@ export class DefaultLanguager extends Languager {
 
         if (!gid && !uid) return this.settings.defaultLanguage || 'en';
 
-        if (uid && this.ulcache.has(uid)) {
+        if (uid) {
             const cached = this.ulcache.get(uid);
 
             if (cached) return cached;
-            const db = await this.UserLanguage.findOne({
-                where: {
-                    uid,
+            if (!this.ulcache.has(uid)) {
+                const db = await this.UserLanguage.findOne({
+                    where: {
+                        uid,
+                    }
+                });
+                if (!db || !db.language) {
+                    this.ulcache.set(uid, null);
                 }
-            });
-            if (!db || !db.language) {
-                this.ulcache.set(uid, null);
-            }
-            else {
-                this.ulcache.set(uid, db.language);
-                return db.language;
+                else {
+                    this.ulcache.set(uid, db.language);
+                    return db.language;
+                }
             }
         }
 
         if (!gid) return this.settings.defaultLanguage || 'en';
 
-        if (this.glcache.has(gid)) {
+        {
             const cached = this.glcache.get(gid);
 
             if (cached) return cached;
-            const db = await this.GuildLanguage.findOne({
-                where: {
-                    gid,
+            if (this.glcache.has(gid)) {
+                const db = await this.GuildLanguage.findOne({
+                    where: {
+                        gid,
+                    }
+                });
+                if (!db || !db.language) {
+                    this.glcache.set(gid, null);
                 }
-            });
-            if (!db || !db.language) {
-                this.glcache.set(gid, null);
-            }
-            else {
-                this.glcache.set(gid, db.language);
-                return db.language;
+                else {
+                    this.glcache.set(gid, db.language);
+                    return db.language;
+                }
             }
         }
 
@@ -147,7 +160,8 @@ export class DefaultLanguager extends Languager {
                 }
             });
 
-            await db.update("language", lang);
+            db.setDataValue('language', lang);
+            await db.save();
         }
 
         if (target.guild) {
@@ -159,14 +173,15 @@ export class DefaultLanguager extends Languager {
                 }
             });
 
-            await db.update("language", lang);
+            db.setDataValue('language', lang);
+            await db.save();
         }
     }
 
-    public async instantiate(context: Context): Promise<LanguagerInstance> {
+    public async instantiate(message: Message): Promise<LanguagerInstance> {
         return new DefaultLanguagerInstance({
             ...this.settings,
-            lang : await this.getLanguageIn(context),
-        }, context);
+            lang : await this.getLanguageIn(message),
+        }, message);
     }
 }
